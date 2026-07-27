@@ -1,0 +1,266 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports & Insights | AFRAA Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'procurement/css/aviation.css' %}">
+    <style>
+        .report-header {
+            background: var(--navy-cockpit-grad);
+            border-bottom: 3px solid var(--sky-glow);
+            color: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body { background: white !important; color: black !important; font-size: 12pt; }
+            .no-print { display: none !important; }
+            .report-header {
+                background: none !important;
+                color: black !important;
+                border: 1px solid #ddd !important;
+                box-shadow: none !important;
+                padding: 15px;
+            }
+            .aviation-card, .hud-widget, .aviation-table-container {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                background: white !important;
+                color: black !important;
+            }
+            .hud-widget {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="pb-5">
+
+    <div class="container py-4">
+        
+        <!-- Action bar -->
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print flex-wrap gap-2">
+            <a href="{% url 'analysis_dashboard' tender.id %}" class="btn btn-aviation-outline">
+                ← Back to Analysis Matrix
+            </a>
+            <button onclick="window.print();" class="btn btn-aviation-success">
+                🖨️ Export PDF / Print Report
+            </button>
+        </div>
+
+        <!-- Header Banner -->
+        <div class="report-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <span class="runway-badge green mb-2 py-1 px-3" style="font-size: 0.75rem;">Official Tender Intelligence</span>
+                <h1 class="fw-bold mb-1 text-white">Reports & Insights Workbench</h1>
+                <p class="mb-0 text-white-50">Tender: <strong class="text-white">{{ tender.title }}</strong> | Active cycle statistics and competitive intelligence.</p>
+            </div>
+            <div class="text-md-end text-white">
+                <span class="fs-6 text-white-50">Standardized Target:</span>
+                <div class="fs-3 fw-bold text-warning display-font">{{ target_curr }} / {{ target_uom }}</div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="aviation-card static-card no-print">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0 text-primary fw-bold">🔎 Filter & Standardize Datasets</h5>
+                <a href="{% url 'reports_insights' tender.id %}" class="btn btn-sm btn-link text-decoration-none text-muted">Reset Filters</a>
+            </div>
+            <div class="card-body p-4">
+                <form method="get" class="row g-3">
+                    
+                    <!-- Filters -->
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Supplier</label>
+                        <select name="supplier" class="form-select">
+                            <option value="">-- All Suppliers --</option>
+                            {% for s in suppliers %}
+                                <option value="{{ s.id }}" {% if f_supplier == s.id|stringformat:"i" %}selected{% endif %}>{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Location (Airport)</label>
+                        <select name="airport" class="form-select">
+                            <option value="">-- All Locations --</option>
+                            {% for a in airports %}
+                                <option value="{{ a.id }}" {% if f_airport == a.id|stringformat:"i" %}selected{% endif %}>{{ a }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Airline</label>
+                        <select name="airline" class="form-select">
+                            <option value="">-- All Airlines --</option>
+                            {% for al in airlines %}
+                                <option value="{{ al.id }}" {% if f_airline == al.id|stringformat:"i" %}selected{% endif %}>{{ al.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Bidding Round</label>
+                        <select name="round" class="form-select">
+                            <option value="">-- All Rounds --</option>
+                            {% for r in rounds %}
+                                <option value="{{ r }}" {% if f_round == r|stringformat:"i" %}selected{% endif %}>Round {{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Standardization parameters -->
+                    <div class="col-md-3 pt-3 border-top" style="border-top-color: var(--border-color) !important;">
+                        <label class="form-label small fw-bold text-secondary">Target Currency</label>
+                        <select name="target_curr" class="form-select">
+                            {% for c in currencies %}
+                                <option value="{{ c.code }}" {% if target_curr == c.code %}selected{% endif %}>{{ c.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 pt-3 border-top" style="border-top-color: var(--border-color) !important;">
+                        <label class="form-label small fw-bold text-secondary">Target Unit</label>
+                        <select name="target_uom" class="form-select">
+                            {% for u in uoms %}
+                                <option value="{{ u.code }}" {% if target_uom == u.code %}selected{% endif %}>{{ u.code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 pt-3 border-top d-flex align-items-end justify-content-end" style="border-top-color: var(--border-color) !important;">
+                        <button type="submit" class="btn btn-aviation-glow px-5">
+                            ⚡ Apply Filters & Recalculate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Summary KPIs Section -->
+        <div class="row g-4 mb-5">
+            
+            <div class="col-md-3">
+                <div class="hud-widget primary">
+                    <div class="hud-title">Total Evaluated Volume</div>
+                    <div class="hud-value font-monospace">{{ total_volume_usg|stringformat:",.0f" }}</div>
+                    <div class="hud-unit">Standardized US Gallons</div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="hud-widget success">
+                    <div class="hud-title">Bids Evaluated</div>
+                    <div class="hud-value font-monospace">{{ bid_count }}</div>
+                    <div class="hud-unit">Matching active filters</div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="hud-widget warning">
+                    <div class="hud-title">Avg Differential</div>
+                    <div class="hud-value font-monospace" style="font-size: 1.8rem;">
+                        {% if bid_count > 0 %}{{ avg_differential|stringformat:".4f" }}{% else %}N/A{% endif %}
+                    </div>
+                    <div class="hud-unit">Per unit ({{ target_curr }}/{{ target_uom }})</div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="hud-widget danger">
+                    <div class="hud-title">Cheapest Landed Cost</div>
+                    <div class="hud-value font-monospace" style="font-size: 1.8rem;">
+                        {% if cheapest_bid %}{{ cheapest_bid.total_landed_cost|stringformat:".4f" }}{% else %}N/A{% endif %}
+                    </div>
+                    <div class="hud-unit">Per unit ({{ target_curr }}/{{ target_uom }})</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Dynamic Insights Section -->
+        <div class="briefing-box mb-5">
+            <h4 class="fw-bold text-primary mb-3">💡 Dynamic Competitive Insights</h4>
+            <ul class="mb-0 fs-6 d-flex flex-column gap-2 text-secondary">
+                {% for insight in insights %}
+                    <li>{{ insight|safe }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Detailed Evaluation Table -->
+        <div class="aviation-card static-card mb-5">
+            <div class="card-header">
+                <h5 class="mb-0 fw-bold">📊 Bid Comparison Evaluation Matrix</h5>
+            </div>
+            <div class="aviation-table-container border-0 shadow-none m-0">
+                <table class="table aviation-table align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 80px;">Rank</th>
+                            <th>Location (IATA)</th>
+                            <th>Airline</th>
+                            <th>Supplier</th>
+                            <th>Original Bid<br><small>& Differential</small></th>
+                            <th>Std. Differential<br><small>({{ target_curr }}/{{ target_uom }})</small></th>
+                            <th>Fees & Taxes<br><small>({{ target_curr }}/{{ target_uom }})</small></th>
+                            <th class="text-primary" style="font-weight: 700;">Net Landed Price</th>
+                            <th class="text-center">Round</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in analyzed_bids %}
+                        <tr class="{% if forloop.first %}aviation-row-winner{% endif %}">
+                            <td class="text-center font-monospace">{{ forloop.counter }}</td>
+                            <td>
+                                <strong class="text-primary">{{ item.bid_obj.airport.display_code }}</strong>
+                                <br><small class="text-muted">{{ item.bid_obj.airport.name }}</small>
+                            </td>
+                            <td>{{ item.bid_obj.airline.name|default:'N/A' }}</td>
+                            <td>
+                                <span class="badge bg-secondary p-2">{{ item.supplier }}</span>
+                            </td>
+                            <td class="text-muted small">
+                                {{ item.original_bid }}
+                                <br>Diff: {% if item.original_differential > 0 %}+{% endif %}{{ item.original_differential|stringformat:".4f" }}
+                            </td>
+                            <td>
+                                <span class="font-monospace">{% if item.standardized_differential > 0 %}+{% endif %}{{ item.standardized_differential|stringformat:".4f" }}</span>
+                            </td>
+                            <td>
+                                <span class="font-monospace">{{ item.fees_and_taxes|stringformat:".4f" }}</span>
+                            </td>
+                            <td class="text-primary font-monospace fs-6 fw-bold">
+                                {{ item.total_landed_cost|stringformat:".4f" }}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border font-monospace">Round {{ item.bid_obj.round_number }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted fst-italic">No bids match the currently applied filters. Try adjusting your parameters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white border-top py-3 text-muted small text-center no-print" style="border-top-color: var(--border-color) !important;">
+                This evaluation report was generated automatically. Print or save to PDF for offline distribution.
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

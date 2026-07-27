@@ -1,0 +1,201 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Verification Console - AFRAA Fuel System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'procurement/css/aviation.css' %}">
+</head>
+<body class="pb-5">
+
+    <div class="container mt-4">
+        {% include 'procurement/_header.html' with header_title='Supplier Verification Console' %}
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-left: 4px solid var(--sky-blue) !important; background: var(--bg-card); color: var(--text-main);">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="filter: var(--text-main) === '#f1f5f9' ? 'invert(1)' : 'none';"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <!-- Left Side: Document Status List -->
+            <div class="col-lg-8">
+                <div class="aviation-card static-card">
+                    <div class="card-header">
+                        <h5 class="mb-0 fw-bold">📋 Required Verification Documents</h5>
+                    </div>
+                    
+                    <div class="p-4">
+                        <p class="text-muted mb-4">
+                            To comply with AFRAA Fuel Procurement regulations, all suppliers are required to upload valid copies of their <strong>Business Registration Certificate</strong> and <strong>Insurance Certificate</strong>. Bidding access will be granted automatically once all required documents are verified and approved by the system administrators.
+                        </p>
+
+                        <div class="aviation-table-container">
+                            <table class="table aviation-table">
+                                <thead>
+                                    <tr>
+                                        <th>Document Type</th>
+                                        <th>Status</th>
+                                        <th>Uploaded Date</th>
+                                        <th>Action/Feedback</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Business Registration -->
+                                    <tr>
+                                        <td>
+                                            <strong>Business Registration</strong>
+                                            <div class="small text-muted mt-1">Official certificate of registration or incorporation.</div>
+                                        </td>
+                                        <td>
+                                            {% for doc in documents %}
+                                                {% if doc.document_type == 'business_registration' %}
+                                                    {% if doc.status == 'APPROVED' %}
+                                                        <span class="runway-badge green">✓ Approved</span>
+                                                    {% elif doc.status == 'REJECTED' %}
+                                                        <span class="runway-badge red">✗ Rejected</span>
+                                                    {% else %}
+                                                        <span class="runway-badge amber">⧗ Pending Review</span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% empty %}
+                                                <span class="runway-badge grey">Missing</span>
+                                            {% endfor %}
+                                            {% if 'business_registration' not in documents.values_list_doc_types %}
+                                                <!-- If not explicitly rendered in loop -->
+                                                {% if missing_docs and 'business_registration' in missing_docs %}
+                                                    <span class="runway-badge grey">Missing</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% for doc in documents %}
+                                                {% if doc.document_type == 'business_registration' %}
+                                                    <span class="small text-muted">{{ doc.uploaded_at|date:"Y-m-d H:i" }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for doc in documents %}
+                                                {% if doc.document_type == 'business_registration' %}
+                                                    <div class="d-flex flex-column gap-1">
+                                                        <a href="{{ doc.file.url }}" class="btn btn-sm btn-aviation-outline py-1 text-center" target="_blank">View File</a>
+                                                        {% if doc.status == 'REJECTED' %}
+                                                            <div class="alert alert-danger p-2 mt-2 mb-0 small" style="font-size: 0.8rem;">
+                                                                <strong>Rejection Reason:</strong> {{ doc.rejection_reason|default:"No reason provided." }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- Insurance Certificate -->
+                                    <tr>
+                                        <td>
+                                            <strong>Insurance Certificate</strong>
+                                            <div class="small text-muted mt-1">Valid commercial third-party or aviation liability insurance.</div>
+                                        </td>
+                                        <td>
+                                            {% for doc in documents %}
+                                                {% if doc.document_type == 'insurance' %}
+                                                    {% if doc.status == 'APPROVED' %}
+                                                        <span class="runway-badge green">✓ Approved</span>
+                                                    {% elif doc.status == 'REJECTED' %}
+                                                        <span class="runway-badge red">✗ Rejected</span>
+                                                    {% else %}
+                                                        <span class="runway-badge amber">⧗ Pending Review</span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% empty %}
+                                                <span class="runway-badge grey">Missing</span>
+                                            {% endfor %}
+                                            {% if 'insurance' not in documents.values_list_doc_types %}
+                                                {% if missing_docs and 'insurance' in missing_docs %}
+                                                    <span class="runway-badge grey">Missing</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% for doc in documents %}
+                                                {% if doc.document_type == 'insurance' %}
+                                                    <span class="small text-muted">{{ doc.uploaded_at|date:"Y-m-d H:i" }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for doc in documents %}
+                                                {% if doc.document_type == 'insurance' %}
+                                                    <div class="d-flex flex-column gap-1">
+                                                        <a href="{{ doc.file.url }}" class="btn btn-sm btn-aviation-outline py-1 text-center" target="_blank">View File</a>
+                                                        {% if doc.status == 'REJECTED' %}
+                                                            <div class="alert alert-danger p-2 mt-2 mb-0 small" style="font-size: 0.8rem;">
+                                                                <strong>Rejection Reason:</strong> {{ doc.rejection_reason|default:"No reason provided." }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Upload Form -->
+            <div class="col-lg-4">
+                <div class="aviation-card static-card">
+                    <div class="card-header">
+                        <h5 class="mb-0 fw-bold">📤 Upload Document</h5>
+                    </div>
+                    <div class="p-4">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.document_type.id_for_label }}" class="form-label">Document Type</label>
+                                {{ form.document_type }}
+                                <div class="form-text text-muted small">Select which document type you are submitting.</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="{{ form.file.id_for_label }}" class="form-label">File Attachment</label>
+                                {{ form.file }}
+                                <div class="form-text text-muted small">Supported files: PDF, JPG, PNG. Max file size: 5MB.</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-aviation-glow w-100 py-2">
+                                Upload Verification File
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="aviation-card static-card briefing-box mt-3" style="border-left: 6px solid var(--sky-blue);">
+                    <h6 class="fw-bold mb-2 text-primary">💡 Verification Notice</h6>
+                    <p class="small text-muted mb-0" style="line-height: 1.5;">
+                        Re-uploading any document will replace the previously uploaded file and reset its review status back to <strong>Pending Review</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-start">
+            <a href="{% url 'dashboard' %}" class="btn btn-aviation-outline">
+                ← Return to Cockpit Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+{% load static %}
+{% load procurement_tags %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Real-Time Ranking | AFRAA Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'procurement/css/aviation.css' %}">
+</head>
+<body class="pb-5">
+
+    <div class="container mt-4">
+        {% include 'procurement/_header.html' with header_title='Live Ranking Dashboard' %}
+        
+        <!-- Navigation & Calibration Bar -->
+        <div class="mb-5">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <h2 class="mb-0 fw-light">My Ranking: <span class="fw-bold text-primary">{{ tender.title }}</span></h2>
+
+                <form method="get" class="d-flex gap-2 align-items-center calibration-bar">
+                    <span class="text-muted small fw-bold px-2">CALIBRATION / DISPLAY:</span>
+                    
+                    <select name="target_curr" onchange="this.form.submit()">
+                        {% for c in currencies %}
+                            <option value="{{ c.code }}" {% if target_curr == c.code %}selected{% endif %}>{{ c.code }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select name="target_uom" onchange="this.form.submit()">
+                        {% for u in uoms %}
+                            <option value="{{ u.code }}" {% if target_uom == u.code %}selected{% endif %}>{{ u.code }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <p class="text-muted fs-5 mb-0">Hello <strong>{{ request.user.username }}</strong>, here is how your submitted bids currently rank against the competition.</p>
+                <a href="{% url 'submit_bids' tender.id %}" class="btn btn-aviation-success">← Back to Bidding</a>
+            </div>
+        </div>
+
+        {% if not dashboard_data %}
+            <div class="briefing-box text-center p-5 rounded-4">
+                <h4>No Bids Found</h4>
+                <p class="text-muted">You haven't submitted any bids for this Tender yet, or your bids are currently being evaluated.</p>
+                <a href="{% url 'submit_bids' tender.id %}" class="btn btn-aviation-success mt-3">Go to Bid Submission</a>
+            </div>
+        {% else %}
+            {% if hide_rankings %}
+            <div class="briefing-box mb-4" style="border-left-color: var(--warning-amber) !important;">
+                <h5 class="mb-2 fw-bold text-warning">🏆 Rankings Hidden</h5>
+                <p class="mb-0 text-muted">Live competitive rankings are currently hidden by the administrator. Full rankings and competitor gaps will be revealed once the bidding round closes.</p>
+            </div>
+            {% endif %}
+            
+            <div class="aviation-card static-card">
+                <div class="aviation-table-container border-0 shadow-none m-0">
+                    <table class="table aviation-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Location</th>
+                                <th>Airline Volume</th>
+                                <th>Your Bid Reference<br><small>& Std. Pricing</small></th>
+                                <th class="text-end">Fees & Taxes</th>
+                                <th class="text-end">Your Landed Cost<br><small class="text-muted">({{ target_curr }} / {{ target_uom }})</small></th>
+                                <th class="text-center">Current Rank</th>
+                                <th class="text-center">Gap to Competitor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in dashboard_data %}
+                            <tr class="{% if item.result.is_leading %}aviation-row-winner{% endif %}">
+                                <td>
+                                    <div class="fw-bold text-dark fs-5">
+                                        {% if item.airport.iata_code %}
+                                            {{ item.airport.iata_code }}
+                                            <small class="text-muted text-sm fw-normal">({{ item.airport.icao_code }})</small>
+                                        {% else %}
+                                            {{ item.airport.icao_code }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-muted small">{{ item.airport.name }}</div>
+                                </td>
+                                
+                                <td>
+                                    <div class="fw-bold">{{ item.result.airline }}</div>
+                                    <div class="text-muted small">{{ item.demand.volume_usg|stringformat:",.2f" }} USG</div>
+                                </td>
+                                
+                                <td class="text-muted">
+                                    <div class="fw-bold text-dark">{{ item.result.original_bid }}</div>
+                                    <div class="small">Diff: {% if item.result.original_differential > 0 %}+{% endif %}{{ item.result.original_differential|floatformat:4 }}</div>
+                                    <div class="small mt-1 text-secondary border-top pt-1" style="border-top-color: var(--border-color) !important;">
+                                        Std Base: {{ item.result.standardized_base_price|floatformat:4 }}<br>
+                                        Std Diff: {% if item.result.standardized_differential > 0 %}+{% endif %}{{ item.result.standardized_differential|floatformat:4 }}<br>
+                                        Inv: {{ item.result.credit_period }} days
+                                    </div>
+                                </td>
+                                
+                                <td class="text-end text-muted" style="min-width: 140px;">
+                                    <div class="fw-bold text-dark">{{ item.result.fees_and_taxes|floatformat:4 }}</div>
+                                    <div class="mt-1 d-flex flex-column gap-1 align-items-end">
+                                        {% for tax in item.result.categorized_taxes.included %}
+                                            <span class="runway-badge green text-start" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;" title="Included: {{ tax.original_amount|floatformat:2 }} {{ tax.original_currency }}">
+                                                + {{ tax.computed_amount|floatformat:2 }} | {{ tax.name }}
+                                            </span>
+                                        {% endfor %}
+                                        {% for tax in item.result.categorized_taxes.excluded %}
+                                            <span class="runway-badge amber text-start" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;" title="Excluded: {{ tax.original_amount|floatformat:2 }} {{ tax.original_currency }}">
+                                                + {{ tax.computed_amount|floatformat:2 }} | {{ tax.name }}
+                                            </span>
+                                        {% endfor %}
+                                        {% for tax in item.result.categorized_taxes.conditional %}
+                                            <span class="runway-badge grey text-start" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;" title="Conditional: {{ tax.original_amount|floatformat:2 }} {{ tax.original_currency }}">
+                                                + {{ tax.computed_amount|floatformat:2 }} | {{ tax.name }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                
+                                <td class="text-end fs-5 text-primary fw-bold">
+                                    {{ item.result.total_landed_cost|floatformat:4 }}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if hide_rankings %}
+                                        <span class="runway-badge grey">Hidden</span>
+                                    {% else %}
+                                        <div class="fs-4 fw-bold {% if item.result.is_leading %}text-success{% else %}text-danger{% endif %}">
+                                            {{ item.result.rank }}
+                                        </div>
+                                        <div class="text-muted small">of {{ item.total_bidders }}</div>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if hide_rankings %}
+                                        <span class="runway-badge grey">Hidden</span>
+                                    {% else %}
+                                        {% if item.result.is_leading %}
+                                            {% if item.total_bidders > 1 %}
+                                                <span class="runway-badge green">
+                                                    {{ item.result.gap_percent|floatformat:2 }}% vs #2
+                                                </span>
+                                            {% else %}
+                                                <span class="runway-badge grey">
+                                                    Uncontested
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="runway-badge red">
+                                                +{{ item.result.gap_percent|floatformat:2 }}% vs #1
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-light py-3 border-top text-muted small text-center" style="border-top-color: var(--border-color) !important;">
+                    Ranking is calculated live based on current FX rates and standardized cost.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

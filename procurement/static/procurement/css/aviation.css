@@ -1,0 +1,575 @@
+/* Centralized Aviation Theme CSS with togglable Dark Mode */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    /* Fonts */
+    --font-display: 'Outfit', sans-serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+    /* Light Theme (Default) */
+    --bg-page: #f0f3f6;
+    --bg-card: #ffffff;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-glow: rgba(0, 162, 255, 0.2);
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    
+    /* Aviation Panel Colors */
+    --navy-cockpit: #0b1320;
+    --navy-cockpit-grad: linear-gradient(135deg, #0b1320 0%, #15253d 100%);
+    --sky-blue: #0052cc;
+    --sky-glow: #00d2ff;
+    --runway-green: #00c853;
+    --runway-green-glow: rgba(0, 200, 83, 0.15);
+    --alert-red: #ff3d00;
+    --alert-red-glow: rgba(255, 61, 0, 0.15);
+    --warning-amber: #ffb300;
+    --warning-amber-glow: rgba(255, 179, 0, 0.15);
+    --inactive-grey: #6b7280;
+    --inactive-grey-glow: rgba(107, 114, 128, 0.15);
+
+    /* Inputs & Form Elements */
+    --input-bg: #ffffff;
+    --input-border: #cbd5e1;
+    --input-text: #1e293b;
+    --input-focus-border: #0052cc;
+    --input-focus-shadow: rgba(0, 82, 204, 0.15);
+    
+    /* Lists & Tables */
+    --table-header-bg: #f8fafc;
+    --table-header-text: #475569;
+    --table-hover: rgba(0, 82, 204, 0.02);
+    --badge-bg: #e2e8f0;
+    --badge-text: #475569;
+
+    --card-shadow: 0 10px 25px -5px rgba(11, 19, 32, 0.05), 0 8px 16px -6px rgba(11, 19, 32, 0.02);
+    --hud-glow: none;
+    --transition-speed: 0.25s;
+}
+
+/* Dark Theme Variables */
+body.dark-theme {
+    --bg-page: #070c14;
+    --bg-card: #111823;
+    --border-color: rgba(255, 255, 255, 0.07);
+    --border-glow: rgba(0, 210, 255, 0.25);
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    
+    --navy-cockpit: #04080e;
+    --navy-cockpit-grad: linear-gradient(135deg, #04080e 0%, #0c1524 100%);
+    --sky-blue: #38bdf8;
+    --sky-glow: #00d2ff;
+    --runway-green: #00e676;
+    --runway-green-glow: rgba(0, 230, 118, 0.25);
+    --alert-red: #ff4d4d;
+    --alert-red-glow: rgba(255, 77, 77, 0.25);
+    --warning-amber: #fbbf24;
+    --warning-amber-glow: rgba(251, 191, 36, 0.25);
+    --inactive-grey: #94a3b8;
+    --inactive-grey-glow: rgba(148, 163, 184, 0.2);
+
+    --input-bg: #1e293b;
+    --input-border: #334155;
+    --input-text: #f8fafc;
+    --input-focus-border: #38bdf8;
+    --input-focus-shadow: rgba(56, 189, 248, 0.2);
+    
+    --table-header-bg: #1e293b;
+    --table-header-text: #94a3b8;
+    --table-hover: rgba(0, 210, 255, 0.04);
+    --badge-bg: #1e293b;
+    --badge-text: #cbd5e1;
+
+    --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+    --hud-glow: 0 0 15px rgba(0, 210, 255, 0.15);
+}
+
+/* Global Core Styles */
+body {
+    background-color: var(--bg-page) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-body) !important;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+    min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6, .display-font {
+    font-family: var(--font-display);
+    font-weight: 600;
+}
+
+a {
+    color: var(--sky-blue);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+a:hover {
+    color: var(--sky-glow);
+}
+
+/* Cockpit Header Panel */
+.cockpit-header {
+    background: var(--navy-cockpit-grad);
+    border-bottom: 2px solid var(--sky-glow);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    padding: 1.5rem 2rem;
+    border-radius: 0 0 1.5rem 1.5rem;
+    color: #ffffff;
+    margin-bottom: 2.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.cockpit-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.3), transparent);
+}
+
+.cockpit-header h1 {
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.cockpit-header .brand-icon {
+    font-size: 1.8rem;
+    margin-right: 0.5rem;
+    filter: drop-shadow(0 0 8px var(--sky-glow));
+}
+
+.cockpit-header .btn-outline-dark {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.cockpit-header .btn-outline-dark:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: #ffffff !important;
+}
+
+/* Altimeter Status Bar */
+.flight-status-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    padding: 0.4rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+}
+
+.flight-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.flight-status-indicator.active {
+    background-color: var(--runway-green);
+    box-shadow: 0 0 10px var(--runway-green);
+}
+
+/* Premium Card Components */
+.aviation-card {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 1rem !important;
+    box-shadow: var(--card-shadow) !important;
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease, background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.aviation-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px -5px rgba(11, 19, 32, 0.1), 0 10px 20px -6px rgba(11, 19, 32, 0.04) !important;
+}
+
+/* Disable lift animation on forms or containers where it causes issues */
+.aviation-card.static-card:hover {
+    transform: none;
+    box-shadow: var(--card-shadow) !important;
+}
+
+.aviation-card .card-header {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+body.dark-theme .aviation-card .card-header {
+    background-color: rgba(255, 255, 255, 0.01) !important;
+}
+
+.airport-header-bar {
+    background: linear-gradient(90deg, var(--navy-cockpit) 0%, rgba(21, 37, 61, 0.9) 100%) !important;
+    color: #ffffff !important;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem 1rem 0 0;
+    border-bottom: 2px solid var(--sky-glow);
+}
+
+/* Custom Table Overrides */
+.aviation-table-container {
+    background-color: var(--bg-card);
+    border-radius: 1rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+    transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+}
+
+.aviation-table {
+    margin-bottom: 0 !important;
+}
+
+.aviation-table th {
+    background-color: var(--table-header-bg) !important;
+    color: var(--table-header-text) !important;
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 1.1rem 1.25rem !important;
+    border-bottom: 2px solid var(--border-color) !important;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+.aviation-table td {
+    padding: 1.2rem 1.25rem !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text-main);
+    font-size: 0.92rem;
+    font-weight: 500;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+.aviation-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.aviation-table tbody tr:hover {
+    background-color: var(--table-hover) !important;
+}
+
+/* Glowing States & Highlights */
+.aviation-row-winner {
+    background-color: var(--runway-green-glow) !important;
+    border-left: 6px solid var(--runway-green) !important;
+}
+
+.aviation-row-winner td {
+    font-weight: 600;
+}
+
+/* Pilot HUD Stats widgets */
+.hud-widget {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    position: relative;
+    overflow: hidden;
+    transition: all var(--transition-speed) ease;
+}
+
+.hud-widget::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--sky-blue);
+}
+
+.hud-widget.primary::before { background-color: var(--sky-blue); }
+.hud-widget.success::before { background-color: var(--runway-green); }
+.hud-widget.warning::before { background-color: var(--warning-amber); }
+.hud-widget.danger::before { background-color: var(--alert-red); }
+
+.hud-widget:hover {
+    box-shadow: var(--card-shadow), var(--hud-glow);
+    border-color: var(--sky-glow);
+}
+
+.hud-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.hud-value {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-main);
+}
+
+.hud-unit {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+/* Runway Lights Badges */
+.runway-badge {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.runway-badge.green {
+    background-color: var(--runway-green-glow);
+    color: var(--runway-green) !important;
+    border: 1px solid rgba(0, 200, 83, 0.2);
+}
+
+.runway-badge.red {
+    background-color: var(--alert-red-glow);
+    color: var(--alert-red) !important;
+    border: 1px solid rgba(255, 61, 0, 0.2);
+}
+
+.runway-badge.amber {
+    background-color: var(--warning-amber-glow);
+    color: var(--warning-amber) !important;
+    border: 1px solid rgba(255, 179, 0, 0.2);
+}
+
+.runway-badge.grey {
+    background-color: var(--inactive-grey-glow);
+    color: var(--inactive-grey) !important;
+    border: 1px solid rgba(107, 114, 128, 0.2);
+}
+
+/* Inputs & Forms Design */
+.form-label, label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    margin-bottom: 0.4rem;
+}
+
+.form-control, .form-select {
+    background-color: var(--input-bg) !important;
+    border: 1.5px solid var(--input-border) !important;
+    color: var(--input-text) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color var(--transition-speed) ease !important;
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--input-focus-border) !important;
+    box-shadow: 0 0 0 0.25rem var(--input-focus-shadow) !important;
+    outline: none !important;
+}
+
+/* Special cockpit cockpit dashboard control bar */
+.calibration-bar {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    padding: 0.5rem 1.25rem;
+    box-shadow: var(--card-shadow);
+    transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease;
+}
+
+.calibration-bar select {
+    border: none !important;
+    background-color: transparent !important;
+    padding: 0.25rem 0.5rem !important;
+    font-weight: 700 !important;
+    font-family: var(--font-display) !important;
+    font-size: 0.85rem !important;
+    color: var(--sky-blue) !important;
+}
+
+.calibration-bar select:focus {
+    box-shadow: none !important;
+}
+
+/* Sticky Cockpit Bottom bar */
+.cockpit-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--navy-cockpit);
+    border-top: 3px solid var(--sky-glow);
+    padding: 1.25rem 2rem;
+    z-index: 1050;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Glassmorphism Auth Components */
+.twilight-bg {
+    background: linear-gradient(135deg, #04080e 0%, #0d1b2a 50%, #1b263b 100%) !important;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.glass-cockpit-card {
+    background: rgba(18, 30, 49, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.75rem;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    max-width: 500px;
+    width: 100%;
+    padding: 3rem 2.5rem;
+    color: #ffffff;
+}
+
+.glass-cockpit-card input, .glass-cockpit-card select {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+.glass-cockpit-card input:focus, .glass-cockpit-card select:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--sky-glow) !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 210, 255, 0.25) !important;
+}
+
+.glass-cockpit-card .brand-glow-text {
+    background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+}
+
+/* Custom premium buttons */
+.btn-aviation-glow {
+    background: linear-gradient(90deg, #0052cc, #00d2ff);
+    color: #ffffff !important;
+    border: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 1.75rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 82, 204, 0.25);
+}
+
+.btn-aviation-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 210, 255, 0.4);
+}
+
+.btn-aviation-success {
+    background: linear-gradient(90deg, #00a846, #00e676);
+    color: #ffffff !important;
+    border: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 2rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 200, 83, 0.25);
+}
+
+.btn-aviation-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 230, 118, 0.4);
+}
+
+.btn-aviation-outline {
+    background: transparent;
+    border: 1.5px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-display);
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    transition: all 0.2s ease;
+}
+
+.btn-aviation-outline:hover {
+    background: var(--table-hover) !important;
+    border-color: var(--sky-blue) !important;
+    color: var(--sky-blue) !important;
+}
+
+/* Light / Dark Mode Toggle button style */
+.theme-switch-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.theme-switch-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.05);
+    color: var(--sky-glow);
+    border-color: var(--sky-glow);
+}
+
+/* Pilot briefs / notification boxes */
+.briefing-box {
+    background-color: var(--bg-card);
+    border-left: 6px solid var(--sky-blue);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--card-shadow);
+    transition: background-color var(--transition-speed) ease;
+}
+
+body.dark-theme .briefing-box {
+    background-color: #122030;
+    border-left-color: var(--sky-glow);
+}

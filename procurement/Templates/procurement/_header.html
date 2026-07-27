@@ -1,0 +1,104 @@
+{% load static %}
+{# Reusable header include. Provide `header_title` and optional `header_note`. #}
+<script>
+    // Immediate script to prevent page flash of light theme
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+        } else {
+            document.body.classList.remove('dark-theme');
+        }
+    })();
+</script>
+
+<div class="cockpit-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="d-flex align-items-center">
+        <span class="brand-icon">✈️</span>
+        <div>
+            <h1 class="h3 mb-0 fw-bold">{{ header_title|default:'AFRAA Fuel Procurement' }}</h1>
+            {% if tender %}
+                <p class="text-white-50 mb-0 small">Active Tender: <strong>{{ tender.title }}</strong></p>
+            {% else %}
+                <p class="text-white-50 mb-0 small">Flight Operations & Logistics Control Center</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="text-end text-white">
+            <div class="flight-status-badge">
+                <span class="flight-status-indicator active"></span>
+                User: <strong class="ms-1">{{ request.user.username }}</strong>
+            </div>
+            
+            {% if not hide_header_nav %}
+                <div class="mt-2 d-flex gap-2 justify-content-end">
+                    {% if request.user.supplier %}
+                        <a href="{% url 'supplier_documents' %}" class="btn btn-sm btn-aviation-outline text-white border-white">🛡️ Verification Docs</a>
+                    {% endif %}
+                    {% if tender %}
+                        {% if request.user.airline %}
+                            <a href="{% url 'submit_volumes' tender.id %}" class="btn btn-sm btn-aviation-outline text-white border-white">✈️ Submit Volumes</a>
+                            <a href="{% url 'airline_analysis_dashboard' tender.id %}" class="btn btn-sm btn-aviation-glow">📊 Live Dashboard</a>
+                        {% endif %}
+                        {% if request.user.supplier %}
+                            <a href="{% url 'supplier_analysis_dashboard' tender.id %}" class="btn btn-sm btn-aviation-outline text-white border-white">📊 My Ranking</a>
+                            <a href="{% url 'submit_bids' tender.id %}" class="btn btn-sm btn-aviation-success">⛽ Submit Bid</a>
+                        {% endif %}
+                        {% if request.user.is_superuser %}
+                            <a href="{% url 'analysis_dashboard' tender.id %}" class="btn btn-sm btn-aviation-outline text-white border-white">📊 Admin Matrix</a>
+                            <a href="{% url 'reports_insights' tender.id %}" class="btn btn-sm btn-aviation-glow">📈 Reports & Insights</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        {% if header_note %}
+        <div class="alert alert-info py-2 px-3 mb-0 small border-0 shadow-sm" style="background: rgba(0, 210, 255, 0.1); border-left: 3px solid var(--sky-glow) !important; color: #ffffff; max-width: 250px;">
+            <strong>Note:</strong> {{ header_note }}
+        </div>
+        {% endif %}
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Theme Toggle Button -->
+            <button type="button" id="theme-toggle" class="theme-switch-btn" title="Toggle Flight Display Mode">
+                <span id="theme-toggle-icon">🌙</span>
+            </button>
+
+            <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-dark px-3 shadow-sm rounded-pill btn-sm text-white border-white">Disconnect</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('theme-toggle');
+        const toggleIcon = document.getElementById('theme-toggle-icon');
+        
+        function updateToggleIcon() {
+            if (document.body.classList.contains('dark-theme')) {
+                toggleIcon.textContent = '☀️';
+                toggleBtn.setAttribute('title', 'Switch to Day Flight Mode');
+            } else {
+                toggleIcon.textContent = '🌙';
+                toggleBtn.setAttribute('title', 'Switch to Night Flight Mode');
+            }
+        }
+        
+        updateToggleIcon();
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                document.body.classList.toggle('dark-theme');
+                const currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 'light';
+                localStorage.setItem('theme', currentTheme);
+                updateToggleIcon();
+            });
+        }
+    });
+</script>

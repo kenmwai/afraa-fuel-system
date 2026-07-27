@@ -1,0 +1,480 @@
+{% load static %}
+{% load procurement_tags %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bid Submission Workbench | AFRAA Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'procurement/css/aviation.css' %}">
+    <style>
+        .airport-card { 
+            border-radius: 1rem; 
+            border: 1px solid var(--border-color); 
+            margin-bottom: 30px; 
+            transition: all 0.3s; 
+            border-left: 8px solid var(--inactive-grey) !important; 
+            background-color: var(--bg-card) !important;
+            overflow: hidden;
+        }
+        .airport-card.has-bid { 
+            border-left-color: var(--runway-green) !important; 
+        }
+        .tax-row { 
+            background: var(--bg-card); 
+            border: 1.5px solid var(--border-color); 
+            border-radius: 10px; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            transition: all 0.2s; 
+        }
+        .label-sm { 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            color: var(--text-muted); 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+            margin-bottom: 4px; 
+            display: block; 
+        }
+        .input-group-text { 
+            font-size: 0.8rem; 
+            font-weight: bold; 
+            background-color: var(--table-header-bg); 
+            border-color: var(--input-border); 
+            color: var(--text-muted); 
+        }
+        .airline-info { 
+            background: var(--badge-bg); 
+            padding: 4px 12px; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            color: var(--badge-text); 
+            border: 1px solid var(--border-color); 
+        }
+    </style>
+</head>
+<body class="pb-5">
+
+    <div class="container py-4">
+        {% include 'procurement/_header.html' with header_title='Official Bid Submission' header_note='Fill "Differential" only for items you wish to bid for. Leave blank to skip.' hide_header_nav=True %}
+
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <a href="{% url 'dashboard' %}" class="btn btn-aviation-outline">← Back to Dashboard</a>
+        </div>
+
+        <div class="briefing-box mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h5 class="mb-1 fw-bold text-primary">Active Round: {{ tender.current_round }} out of 3</h5>
+                <p class="mb-0 small text-muted">Your pricing submitted here will be recorded under Round {{ tender.current_round }} for standardization and analysis.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2 bg-white p-2 rounded border shadow-sm">
+                <span class="fw-bold text-secondary small">Sort Locations By:</span>
+                <select id="sortLocationsSelect" class="form-select form-select-sm" style="width: auto; cursor: pointer;">
+                    <option value="default">Default Order</option>
+                    <option value="name-asc">Location Name (A-Z)</option>
+                    <option value="name-desc">Location Name (Z-A)</option>
+                    <option value="country-asc">Country Name (A-Z)</option>
+                    <option value="volume-desc">Total Volume (Highest to Lowest)</option>
+                    <option value="volume-asc">Total Volume (Lowest to Highest)</option>
+                </select>
+            </div>
+        </div>
+
+        <form method="post" id="bidForm">
+            {% csrf_token %}
+
+            <div id="airport-groups-container">
+            {% regroup volume_requests by airport as airport_list %}
+            {% for airport_group in airport_list %}
+            <div class="airport-group mb-5 p-4 aviation-card static-card" 
+                 id="airport-group-{{ airport_group.grouper.id }}"
+                 data-original-index="{{ forloop.counter }}"
+                 data-name="{{ airport_group.grouper.name|escapejs }}"
+                 data-country="{{ airport_group.grouper.country|escapejs }}"
+                 data-volume="{{ airport_totals_map|dict_key:airport_group.grouper.id|default:0 }}">
+                 
+                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 flex-wrap gap-2">
+                    <h3 class="fw-bold mb-0 text-dark display-font">
+                        {% if airport_group.grouper.iata_code %}
+                            <span class="text-primary fw-bold">{{ airport_group.grouper.iata_code }}</span> 
+                            <small class="text-muted" style="font-size: 0.9rem;">({{ airport_group.grouper.icao_code }})</small>
+                        {% else %}
+                            {{ airport_group.grouper.icao_code }}
+                        {% endif %}
+                        - <span class="fw-normal text-muted" style="font-size: 1.1rem;">{{ airport_group.grouper.name }}, {{ airport_group.grouper.country }}</span>
+                    </h3>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-dark fs-6 py-2 px-3 shadow-sm rounded-pill fw-bold">
+                            📍 Total Volume: {{ airport_totals_map|dict_key:airport_group.grouper.id|default:0|stringformat:",.0f" }} USG
+                        </span>
+                        <button type="button" class="btn btn-aviation-outline btn-sm" onclick="copyFirstToAll({{ airport_group.grouper.id }})">
+                            📋 Copy First Airline's Pricing To All Below
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Volume Demands Summary Box at the Top -->
+                <div class="p-3 mb-4 briefing-box" style="border-left-color: var(--sky-blue) !important;">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="fs-6 fw-bold text-primary">📊 Airline Volume Requirements at this Location:</span>
+                    </div>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
+                        {% for req in airport_group.list %}
+                        <div class="col">
+                            <div class="p-2 rounded border d-flex justify-content-between align-items-center" style="background-color: var(--bg-page); border-color: var(--border-color) !important;">
+                                <span class="fw-bold text-dark small">{{ req.airline.name }}</span>
+                                <span class="badge bg-primary rounded-pill font-monospace" style="font-size: 0.85rem;">
+                                    {{ req.volume_amount|stringformat:",.0f" }} {{ req.uom.code }}
+                                    {% if req.uom.code != 'USG' %}
+                                        <small class="text-white-50" style="font-size: 0.75rem;">({{ req.volume_usg|stringformat:",.0f" }} USG)</small>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% for req in airport_group.list %}
+                {# Generate key "airportID_airlineID" #}
+                {% widthratio req.airport.id 1 1 as a_id %}
+                {% widthratio req.airline.id 1 1 as u_id %}
+                {% with bid_key=a_id|add:"_"|add:u_id %}
+                {% with existing=bid_map|dict_key:bid_key %}
+                
+                <div class="airport-card req-card shadow-sm mb-4 {% if existing %}has-bid{% endif %}" data-req-id="{{ req.id }}">
+                    <div class="card-header d-flex justify-content-between align-items-center py-2" style="background-color: var(--table-header-bg) !important; color: var(--text-main) !important; border-bottom: 1px solid var(--border-color) !important;">
+                        <span class="fs-6 fw-bold">Airline: {{ req.airline.name }}</span>
+                        <span class="badge bg-primary rounded-pill px-3 py-2">
+                            Req: {{ req.volume_amount|stringformat:",.0f" }} {{ req.uom.code }}
+                        </span>
+                    </div>
+                
+                <div class="card-body p-4">
+                    <!-- Pricing Parameters -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="label-sm">Price Basis (e.g. MOPAG, PAP)</label>
+                            <input type="text" name="basis_name_{{ req.id }}" class="form-control" 
+                                   placeholder="e.g. CIF NWE HIGH" value="{{ existing.bid.price_basis|default:'Platts' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="label-sm">Basis Amount</label>
+                            <input type="number" name="basis_amt_{{ req.id }}" step="0.0001" class="form-control" 
+                                   value="{{ existing.bid.reference_price_amount|default:'' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="label-sm text-primary">Differential (+/-) *</label>
+                            <input type="number" name="diff_{{ req.id }}" step="0.0001" 
+                                   class="form-control fw-bold border-primary text-primary" 
+                                   placeholder="Enter to Bid" value="{{ existing.bid.differential_price|default:'' }}">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="label-sm">Curr</label>
+                            <select name="curr_{{ req.id }}" class="form-select">
+                                {% for c in currencies %}
+                                    <option value="{{ c.code }}" {% if existing.bid.currency.code == c.code %}selected{% endif %}>{{ c.code }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="label-sm">Unit</label>
+                            <select name="uom_{{ req.id }}" class="form-select">
+                                {% for u in uoms %}
+                                    <option value="{{ u.code }}" {% if existing.bid.uom.code == u.code %}selected{% endif %}>{{ u.code }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="label-sm">Capacity Offered (%)</label>
+                            <input type="number" name="vol_perc_{{ req.id }}" class="form-control js-vol-perc-input" 
+                                   data-req-amount="{{ req.volume_amount }}" data-req-uom="{{ req.uom.code }}" data-req-usg="{{ req.volume_usg }}"
+                                   value="{{ existing.bid.volume_percentage_offered|default:100 }}" min="1" max="100">
+                            <div class="form-text small fw-bold text-success mt-1 js-bidded-vol-feedback" id="bidded-feedback-{{ req.id }}">
+                                Bidding: {{ req.volume_amount|stringformat:",.0f" }} {{ req.uom.code }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logistics -->
+                    <div class="row g-3 mb-4 border-top pt-3" style="border-top-color: var(--border-color) !important;">
+                        <div class="col-md-4">
+                            <label class="label-sm">Invoicing / Credit Terms (Days)</label>
+                            <div class="input-group">
+                                <input type="number" name="inv_freq_{{ req.id }}" class="form-control" 
+                                       value="{{ existing.bid.invoicing_frequency|default:30 }}">
+                                <span class="input-group-text">/</span>
+                                <input type="number" name="credit_days_{{ req.id }}" class="form-control" 
+                                       value="{{ existing.bid.credit_period|default:30 }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Currency Taxes -->
+                    <div class="border-top pt-4" style="border-top-color: var(--border-color) !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0 text-secondary">Local Taxes & Regional Levies</h6>
+                            <button type="button" class="btn btn-aviation-glow btn-sm js-add-tax-row" data-req-id="{{ req.id }}">+ Add Charge Row</button>
+                        </div>
+                        
+                        <div id="tax-container-{{ req.id }}" class="ps-2">
+                            {% if existing.taxes %}
+                                {% for tax in existing.taxes %}
+                                <script>
+                                    window.addEventListener('load', function() {
+                                        addTaxRow({{ req.id }}, "{{ tax.name }}", "{{ tax.rate }}", "{{ tax.method }}", "{{ tax.category }}", "{{ tax.currency }}", "{{ tax.uom }}");
+                                    });
+                                </script>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+            {% endwith %}
+            {% endfor %}
+            </div> <!-- End Airport Group -->
+            {% empty %}
+                <div class="briefing-box text-center p-5 mt-4">
+                    <h4 class="fw-bold text-primary">No Volume Demands Found</h4>
+                    <p class="mb-0 text-muted">Airlines have not yet submitted any volume requirements for this Tender cycle. Bids cannot be submitted until volume demands are available.</p>
+                </div>
+            {% endfor %}
+            </div> <!-- End airport-groups-container -->
+
+            <div class="cockpit-footer">
+                <button type="submit" class="btn btn-aviation-success btn-lg px-5">SUBMIT OFFICIAL BIDS</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const currencyOptions = [{% for c in currencies %}"{{ c.code }}",{% endfor %}];
+        const unitOptions = [{% for u in uoms %}"{{ u.code }}",{% endfor %}];
+
+        function addTaxRow(reqId, name='', rate='', method='UNIT', cat='MANDATORY_INCLUDED', curr='USD', uom='USG') {
+            const container = document.getElementById(`tax-container-${reqId}`);
+            const div = document.createElement('div');
+            div.className = 'tax-row row g-2 align-items-end';
+            
+            const currSelect = currencyOptions.map(c => 
+                `<option value="${c}" ${c === curr ? 'selected' : ''}>${c}</option>`
+            ).join('');
+
+            const uomSelect = unitOptions.map(u => 
+                `<option value="${u}" ${u === uom ? 'selected' : ''}>${u}</option>`
+            ).join('');
+
+            div.innerHTML = `
+                <div class="col-md-3">
+                    <label class="label-sm text-primary">Description</label>
+                    <input type="text" name="tax_name_${reqId}" class="form-control form-control-sm" value="${name}" required>
+                </div>
+                <div class="col-md-1 text-center">
+                    <label class="label-sm text-primary">Rate</label>
+                    <input type="number" name="tax_rate_${reqId}" step="0.0001" class="form-control form-control-sm text-center" value="${rate}" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="label-sm text-primary">Currency</label>
+                    <select name="tax_curr_${reqId}" class="form-select form-select-sm">${currSelect}</select>
+                </div>
+                <div class="col-md-2">
+                    <label class="label-sm text-primary">Unit</label>
+                    <select name="tax_uom_${reqId}" class="form-select form-select-sm">${uomSelect}</select>
+                </div>
+                <div class="col-md-2">
+                    <label class="label-sm text-primary">Calculation</label>
+                    <select name="tax_method_${reqId}" class="form-select form-select-sm">
+                        <option value="UNIT" ${method === 'UNIT' ? 'selected' : ''}>Per Unit</option>
+                        <option value="UPTAKE" ${method === 'UPTAKE' ? 'selected' : ''}>Per Uptake</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-center justify-content-between">
+                    <div class="w-100 me-2">
+                        <label class="label-sm text-primary">Category</label>
+                        <select name="tax_cat_${reqId}" class="form-select form-select-sm">
+                            <option value="MANDATORY_INCLUDED" ${cat === 'MANDATORY_INCLUDED' || cat === 'MANDATORY' ? 'selected' : ''}>Mandatory (Into-Plane)</option>
+                            <option value="MANDATORY_EXCLUDED" ${cat === 'MANDATORY_EXCLUDED' ? 'selected' : ''}>Mandatory (Not Into-Plane)</option>
+                            <option value="CONDITIONAL" ${cat === 'CONDITIONAL' ? 'selected' : ''}>Conditional</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-outline-danger btn-sm mt-3" onclick="this.closest('.tax-row').remove()">×</button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        window.onload = function() {
+            // Delegate clicks for Add Charge Row buttons
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('.js-add-tax-row');
+                if (btn) {
+                    const reqId = btn.getAttribute('data-req-id') || btn.dataset.reqId;
+                    addTaxRow(reqId);
+                }
+            });
+        };
+
+        function copyFirstToAll(airportId) {
+            const group = document.getElementById(`airport-group-${airportId}`);
+            if (!group) return;
+            const cards = Array.from(group.querySelectorAll('.req-card'));
+            if (cards.length <= 1) return;
+            
+            const firstCard = cards[0];
+            const sourceReqId = firstCard.getAttribute('data-req-id');
+            
+            const basisName = firstCard.querySelector(`input[name="basis_name_${sourceReqId}"]`)?.value || '';
+            const basisAmt = firstCard.querySelector(`input[name="basis_amt_${sourceReqId}"]`)?.value || '';
+            const diff = firstCard.querySelector(`input[name="diff_${sourceReqId}"]`)?.value || '';
+            const curr = firstCard.querySelector(`select[name="curr_${sourceReqId}"]`)?.value || '';
+            const uom = firstCard.querySelector(`select[name="uom_${sourceReqId}"]`)?.value || '';
+            const volPerc = firstCard.querySelector(`input[name="vol_perc_${sourceReqId}"]`)?.value || '';
+            const invFreq = firstCard.querySelector(`input[name="inv_freq_${sourceReqId}"]`)?.value || '';
+            const creditDays = firstCard.querySelector(`input[name="credit_days_${sourceReqId}"]`)?.value || '';
+            
+            const taxContainer = document.getElementById(`tax-container-${sourceReqId}`);
+            const taxRows = Array.from(taxContainer.querySelectorAll('.tax-row'));
+            const taxesData = taxRows.map(row => {
+                return {
+                    name: row.querySelector(`input[name="tax_name_${sourceReqId}"]`)?.value || '',
+                    rate: row.querySelector(`input[name="tax_rate_${sourceReqId}"]`)?.value || '',
+                    curr: row.querySelector(`select[name="tax_curr_${sourceReqId}"]`)?.value || '',
+                    uom: row.querySelector(`select[name="tax_uom_${sourceReqId}"]`)?.value || '',
+                    method: row.querySelector(`select[name="tax_method_${sourceReqId}"]`)?.value || '',
+                    cat: row.querySelector(`select[name="tax_cat_${sourceReqId}"]`)?.value || '',
+                };
+            });
+
+            for(let i = 1; i < cards.length; i++) {
+                const targetReqId = cards[i].getAttribute('data-req-id');
+                
+                const bNameEl = cards[i].querySelector(`input[name="basis_name_${targetReqId}"]`);
+                if (bNameEl) bNameEl.value = basisName;
+                
+                const bAmtEl = cards[i].querySelector(`input[name="basis_amt_${targetReqId}"]`);
+                if (bAmtEl) bAmtEl.value = basisAmt;
+                
+                const diffEl = cards[i].querySelector(`input[name="diff_${targetReqId}"]`);
+                if (diffEl) diffEl.value = diff;
+                
+                const currEl = cards[i].querySelector(`select[name="curr_${targetReqId}"]`);
+                if (currEl) currEl.value = curr;
+                
+                const uomEl = cards[i].querySelector(`select[name="uom_${targetReqId}"]`);
+                if (uomEl) uomEl.value = uom;
+                
+                const vpEl = cards[i].querySelector(`input[name="vol_perc_${targetReqId}"]`);
+                if (vpEl) vpEl.value = volPerc;
+                
+                const invEl = cards[i].querySelector(`input[name="inv_freq_${targetReqId}"]`);
+                if (invEl) invEl.value = invFreq;
+                
+                const cdEl = cards[i].querySelector(`input[name="credit_days_${targetReqId}"]`);
+                if (cdEl) cdEl.value = creditDays;
+                
+                const targetTaxContainer = document.getElementById(`tax-container-${targetReqId}`);
+                if (targetTaxContainer) {
+                    targetTaxContainer.innerHTML = '';
+                    taxesData.forEach(t => {
+                        addTaxRow(targetReqId, t.name, t.rate, t.method, t.cat, t.curr, t.uom);
+                    });
+                }
+            }
+            alert('Pricing and taxes from the first airline have been successfully copied to all other airlines at this location.');
+        }
+
+        // Dynamic location group sorting
+        const sortSelect = document.getElementById('sortLocationsSelect');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function() {
+                const container = document.getElementById('airport-groups-container');
+                const groups = Array.from(container.querySelectorAll('.airport-group'));
+                const sortType = this.value;
+                
+                groups.sort((a, b) => {
+                    if (sortType === 'default') {
+                        const idxA = parseInt(a.getAttribute('data-original-index')) || 0;
+                        const idxB = parseInt(b.getAttribute('data-original-index')) || 0;
+                        return idxA - idxB;
+                    } else if (sortType === 'name-asc') {
+                        return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                    } else if (sortType === 'name-desc') {
+                        return b.getAttribute('data-name').localeCompare(a.getAttribute('data-name'));
+                    } else if (sortType === 'country-asc') {
+                        // Country name first, then location name A-Z
+                        const countryA = a.getAttribute('data-country');
+                        const countryB = b.getAttribute('data-country');
+                        const countryCompare = countryA.localeCompare(countryB);
+                        if (countryCompare !== 0) return countryCompare;
+                        return a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'));
+                    } else if (sortType === 'volume-desc') {
+                        const volA = parseFloat(a.getAttribute('data-volume')) || 0;
+                        const volB = parseFloat(b.getAttribute('data-volume')) || 0;
+                        return volB - volA; // Highest first
+                    } else if (sortType === 'volume-asc') {
+                        const volA = parseFloat(a.getAttribute('data-volume')) || 0;
+                        const volB = parseFloat(b.getAttribute('data-volume')) || 0;
+                        return volA - volB; // Lowest first
+                    }
+                    return 0;
+                });
+                
+                // Append back in sorted order
+                groups.forEach(group => container.appendChild(group));
+            });
+        }
+
+        // Bidded volume calculations
+        function updateBiddedVolume(inputEl) {
+            const reqId = inputEl.name.split('_').pop();
+            const percentage = parseFloat(inputEl.value) || 0;
+            const reqAmount = parseFloat(inputEl.getAttribute('data-req-amount')) || 0;
+            const reqUom = inputEl.getAttribute('data-req-uom');
+            const reqUsg = parseFloat(inputEl.getAttribute('data-req-usg')) || 0;
+            
+            const biddedAmount = (reqAmount * percentage) / 100;
+            const biddedUsg = (reqUsg * percentage) / 100;
+            
+            const feedbackEl = document.getElementById(`bidded-feedback-${reqId}`);
+            if (feedbackEl) {
+                let text = `Bidding: ${biddedAmount.toLocaleString(undefined, {maximumFractionDigits: 0})} ${reqUom}`;
+                if (reqUom !== 'USG') {
+                    text += ` (${biddedUsg.toLocaleString(undefined, {maximumFractionDigits: 0})} USG)`;
+                }
+                feedbackEl.innerText = text;
+            }
+        }
+
+        // Initialize and bind events
+        document.addEventListener('DOMContentLoaded', function() {
+            const percInputs = document.querySelectorAll('.js-vol-perc-input');
+            percInputs.forEach(input => {
+                // Initialize bidded volume feedback text
+                updateBiddedVolume(input);
+                
+                // Listen to input and change events
+                input.addEventListener('input', () => updateBiddedVolume(input));
+                input.addEventListener('change', () => updateBiddedVolume(input));
+            });
+        });
+        
+        // Also update when copying from the first airline
+        const originalCopyFirstToAll = window.copyFirstToAll;
+        window.copyFirstToAll = function(airportGroupId) {
+            if (typeof originalCopyFirstToAll === 'function') {
+                originalCopyFirstToAll(airportGroupId);
+            }
+            // Trigger recalculation of all volume feedback elements in this group
+            const groupEl = document.getElementById(`airport-group-${airportGroupId}`);
+            if (groupEl) {
+                const inputs = groupEl.querySelectorAll('.js-vol-perc-input');
+                inputs.forEach(input => updateBiddedVolume(input));
+            }
+        }
+    </script>
+</body>
+</html>
