@@ -5,3 +5,5 @@ psycopg2-binary==2.9.11
 sqlparse==0.5.5
 tzdata==2025.3
 dj-database-url>=2.0.0
+django-storages>=1.13
+boto3>=1.26
