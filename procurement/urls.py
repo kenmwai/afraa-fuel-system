@@ -1,10 +1,10 @@
 from django.urls import path
 from . import views
-from accounts import views as accounts_views  # explicit import for the register view
+from .register_view import register
 
 urlpatterns = [
     # Registration
-    path('register/', accounts_views.register, name='register'),
+    path('register/', register, name='register'),
     
     # Dashboard
     path('', views.dashboard, name='dashboard'),
