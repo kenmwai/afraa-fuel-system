@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth import login
 from .models import Tender, VolumeRequirement, Bid, Currency, UnitOfMeasure, GlobalConfig, ExchangeRate, Airline, Supplier, Airport, SupplierDocument
 from .Converters import BidAnalyzer
 from .forms import UserRegistrationForm, SupplierDocumentForm
@@ -50,3 +51,34 @@ def presign_upload(request):
 
 # --- rest of views unchanged ---
 # (we will only patch supplier_documents logic below)
+
+
+def register(request):
+    """Registration view using procurement.forms.UserRegistrationForm.
+
+    - Creates the Django User via the form.
+    - Creates Supplier or Airline profile using company_name.
+    - Logs the user in and redirects to 'dashboard'.
+    """
+    if request.method == "POST":
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.email = form.cleaned_data['email']
+            user.save()
+
+            account_type = form.cleaned_data.get('account_type')
+            company_name = form.cleaned_data.get('company_name')
+
+            if account_type == 'supplier':
+                Supplier.objects.create(user=user, name=company_name)
+            else:
+                Airline.objects.create(user=user, name=company_name)
+
+            messages.success(request, "Registration successful. You are now logged in.")
+            login(request, user)
+            return redirect('dashboard')
+    else:
+        form = UserRegistrationForm()
+
+    return render(request, 'registration/register.html', {'form': form})
