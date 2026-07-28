@@ -31,4 +31,7 @@ urlpatterns = [
 
     # Supplier: Document Uploads
     path('supplier/documents/', views.supplier_documents, name='supplier_documents'),
+
+    # Presign upload endpoint for direct-to-R2 uploads
+    path('presign-upload/', views.presign_upload, name='presign_upload'),
 ]
