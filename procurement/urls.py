@@ -31,4 +31,7 @@ urlpatterns = [
 
     # Supplier: Document Uploads
     path('supplier/documents/', views.supplier_documents, name='supplier_documents'),
+
+    # Admin Settings Dashboard
+    path('admin-console/', views.admin_console, name='admin_console'),
 ]

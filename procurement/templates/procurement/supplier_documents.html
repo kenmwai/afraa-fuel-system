@@ -66,11 +66,8 @@
                                             {% empty %}
                                                 <span class="runway-badge grey">Missing</span>
                                             {% endfor %}
-                                            {% if 'business_registration' not in documents.values_list_doc_types %}
-                                                <!-- If not explicitly rendered in loop -->
-                                                {% if missing_docs and 'business_registration' in missing_docs %}
-                                                    <span class="runway-badge grey">Missing</span>
-                                                {% endif %}
+                                            {% if 'business_registration' in missing_docs %}
+                                                <span class="runway-badge grey">Missing</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -116,10 +113,8 @@
                                             {% empty %}
                                                 <span class="runway-badge grey">Missing</span>
                                             {% endfor %}
-                                            {% if 'insurance' not in documents.values_list_doc_types %}
-                                                {% if missing_docs and 'insurance' in missing_docs %}
-                                                    <span class="runway-badge grey">Missing</span>
-                                                {% endif %}
+                                            {% if 'insurance' in missing_docs %}
+                                                <span class="runway-badge grey">Missing</span>
                                             {% endif %}
                                         </td>
                                         <td>

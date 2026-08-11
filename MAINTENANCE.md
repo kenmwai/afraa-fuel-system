@@ -122,7 +122,24 @@ The following environment variables must be configured in the **Vercel Dashboard
 
 ## 5. Media Files (Uploaded Documents)
 
-The system allows suppliers to upload files (e.g. business registration, insurance certificates).
-*   **Current State:** Uploaded files are handled via Django's default filesystem backend and saved to the `media/` directory.
-*   **Serverless Warning:** In a serverless environment like Vercel, files saved to `media/` will be deleted whenever the serverless container spins down.
-*   **Recommended Action:** If you notice that supplier verification uploads are disappearing over time, you should configure a cloud storage provider (such as Amazon S3, Azure Blob, or Cloudinary). This is achieved using the `django-storages` package and adding the respective keys to your environment variables.
+The system allows suppliers to upload verification files (business registration certificates and insurance certificates).
+
+*   **Serverless Warning:** In a serverless environment like Vercel, files saved locally in `media/` are ephemeral and will be lost when the container spins down.
+*   **Production Cloud Storage:** We have configured `django-storages` to conditionally store uploads on **Cloudflare R2** (an S3-compatible object storage) if the respective credentials are found in the environment.
+
+### Required Environment Variables for Cloudflare R2:
+
+Set these variables in the **Vercel Dashboard** (under Project Settings > Environment Variables):
+
+| Variable Name | Description | Example / Format |
+| :--- | :--- | :--- |
+| `AWS_ACCESS_KEY_ID` | R2 API Access Key ID | `abc123xyz...` |
+| `AWS_SECRET_ACCESS_KEY` | R2 API Secret Access Key | `def456uvw...` |
+| `AWS_STORAGE_BUCKET_NAME` | Name of the Cloudflare R2 Bucket | `afraa-fuel-documents` |
+| `AWS_S3_ENDPOINT_URL` | Cloudflare R2 S3-Compatible Endpoint URL | `https://<account-id>.r2.cloudflarestorage.com` |
+| `AWS_S3_CUSTOM_DOMAIN` | *(Optional)* Public custom/subdomain to serve files directly | `files.yourdomain.com` or `pub-xxx.r2.dev` |
+| `AWS_QUERYSTRING_AUTH` | *(Optional)* Set to `False` to prevent expiry tokens in URLs | `False` (defaults to `True` / signed URLs) |
+
+> [!NOTE]
+> During local development, the app will automatically fall back to local disk storage (`media/`) if these environment variables are not set.
+

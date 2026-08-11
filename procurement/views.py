@@ -107,6 +107,10 @@ def submit_bids(request, tender_id):
     
     tender = get_object_or_404(Tender, pk=tender_id)
     
+    if not tender.volumes_released and not request.user.is_superuser:
+        messages.warning(request, "Bidding Locked: The Administrator has not yet finalized and released the fuel volume requirements for this tender.")
+        return redirect('dashboard')
+    
     from django.utils import timezone
     today = timezone.localdate()
     
@@ -658,4 +662,202 @@ def supplier_documents(request):
         'form': form,
         'missing_docs': missing_docs,
         'status_map': status_map,
+    })
+
+
+@login_required
+def admin_console(request):
+    """ONLY FOR AFRAA ADMINS (Superusers): Consolidated Settings Dashboard"""
+    if not request.user.is_superuser:
+        messages.error(request, "Access Denied: Admin privileges required.")
+        return redirect('dashboard')
+
+    from django.contrib.auth.models import User
+    from procurement.models import Airport, Airline, Supplier, Currency, GlobalConfig, Tender, SupplierDocument
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'release_volumes':
+            tender_id = request.POST.get('tender_id')
+            tender = get_object_or_404(Tender, pk=tender_id)
+            tender.volumes_released = True
+            tender.save()
+            messages.success(request, f"Fuel volumes for tender '{tender.title}' have been successfully released to suppliers.")
+
+        elif action == 'approve_user':
+            user_id = request.POST.get('user_id')
+            user = get_object_or_404(User, pk=user_id)
+            user.is_active = True
+            user.save()
+            messages.success(request, f"User account '{user.username}' has been approved and activated.")
+
+        elif action == 'reject_user':
+            user_id = request.POST.get('user_id')
+            user = get_object_or_404(User, pk=user_id)
+            username = user.username
+            user.delete()
+            messages.success(request, f"User account '{username}' registration request was rejected and deleted.")
+
+        elif action == 'approve_doc':
+            doc_id = request.POST.get('doc_id')
+            doc = get_object_or_404(SupplierDocument, pk=doc_id)
+            doc.status = 'APPROVED'
+            doc.rejection_reason = ''
+            doc.save()
+            messages.success(request, f"Supplier document '{doc.get_document_type_display()}' for '{doc.supplier.name}' was approved.")
+
+        elif action == 'reject_doc':
+            doc_id = request.POST.get('doc_id')
+            reason = request.POST.get('rejection_reason', '').strip()
+            doc = get_object_or_404(SupplierDocument, pk=doc_id)
+            doc.status = 'REJECTED'
+            doc.rejection_reason = reason or "Incomplete or invalid documentation."
+            doc.save()
+            messages.warning(request, f"Supplier document '{doc.get_document_type_display()}' for '{doc.supplier.name}' was rejected.")
+
+        elif action == 'add_airport':
+            icao = request.POST.get('icao_code', '').strip().upper()
+            iata = request.POST.get('iata_code', '').strip().upper()
+            name = request.POST.get('name', '').strip()
+            country = request.POST.get('country', '').strip()
+
+            if not icao or not name or not country:
+                messages.error(request, "Failed to Add Airport: ICAO code, name, and country are required.")
+            elif Airport.objects.filter(icao_code=icao).exists():
+                messages.error(request, f"Failed to Add Airport: An airport with ICAO code '{icao}' already exists.")
+            else:
+                Airport.objects.create(icao_code=icao, iata_code=iata, name=name, country=country)
+                messages.success(request, f"Airport '{name}' ({icao}) has been added to the system.")
+
+        elif action == 'add_currency':
+            code = request.POST.get('code', '').strip().upper()
+            name = request.POST.get('name', '').strip()
+            rate = request.POST.get('exchange_rate_to_usd', '').strip()
+            symbol = request.POST.get('symbol', '').strip() or '$'
+
+            if not code or not name or not rate:
+                messages.error(request, "Failed to Add Currency: Code, name, and exchange rate are required.")
+            elif Currency.objects.filter(code=code).exists():
+                messages.error(request, f"Failed to Add Currency: Currency '{code}' already exists.")
+            else:
+                try:
+                    Currency.objects.create(code=code, name=name, exchange_rate_to_usd=Decimal(rate), symbol=symbol)
+                    messages.success(request, f"Currency '{code}' ({name}) has been added.")
+                except Exception as e:
+                    messages.error(request, f"Error adding currency: {str(e)}")
+
+        elif action == 'update_currency_rate':
+            currency_id = request.POST.get('currency_id')
+            rate = request.POST.get('exchange_rate_to_usd', '').strip()
+            if not currency_id or not rate:
+                messages.error(request, "Failed to Update Exchange Rate: Currency selection and rate are required.")
+            else:
+                try:
+                    currency = Currency.objects.get(pk=currency_id)
+                    currency.exchange_rate_to_usd = Decimal(rate)
+                    currency.save()
+                    messages.success(request, f"Exchange rate for '{currency.code}' updated to {rate} USD.")
+                except Exception as e:
+                    messages.error(request, f"Error updating rate: {str(e)}")
+
+        elif action == 'update_credit_apr':
+            rate = request.POST.get('cost_of_credit_apr', '').strip()
+            if not rate:
+                messages.error(request, "Failed to Update APR: Value is required.")
+            else:
+                try:
+                    GlobalConfig.objects.update_or_create(
+                        key='cost_of_credit_apr',
+                        defaults={'value': Decimal(rate)}
+                    )
+                    messages.success(request, f"Global cost of credit APR has been updated to {rate}%.")
+                except Exception as e:
+                    messages.error(request, f"Error updating APR: {str(e)}")
+
+        elif action == 'add_airline':
+            username = request.POST.get('username', '').strip()
+            email = request.POST.get('email', '').strip()
+            password = request.POST.get('password', '').strip()
+            company_name = request.POST.get('company_name', '').strip()
+
+            if not username or not email or not password or not company_name:
+                messages.error(request, "Failed to Create Airline: All fields are required.")
+            elif User.objects.filter(username=username).exists():
+                messages.error(request, f"Failed to Create Airline: Username '{username}' is already taken.")
+            else:
+                try:
+                    user = User.objects.create_user(username=username, email=email, password=password, is_active=True)
+                    Airline.objects.create(user=user, name=company_name)
+                    messages.success(request, f"Airline profile and user account for '{company_name}' created successfully.")
+                except Exception as e:
+                    messages.error(request, f"Error creating airline: {str(e)}")
+
+        elif action == 'add_supplier':
+            username = request.POST.get('username', '').strip()
+            email = request.POST.get('email', '').strip()
+            password = request.POST.get('password', '').strip()
+            company_name = request.POST.get('company_name', '').strip()
+
+            if not username or not email or not password or not company_name:
+                messages.error(request, "Failed to Create Supplier: All fields are required.")
+            elif User.objects.filter(username=username).exists():
+                messages.error(request, f"Failed to Create Supplier: Username '{username}' is already taken.")
+            else:
+                try:
+                    user = User.objects.create_user(username=username, email=email, password=password, is_active=True)
+                    Supplier.objects.create(user=user, name=company_name)
+                    messages.success(request, f"Supplier profile and user account for '{company_name}' created successfully.")
+                except Exception as e:
+                    messages.error(request, f"Error creating supplier: {str(e)}")
+
+        return redirect('admin_console')
+
+    # GET Request: Fetch data
+    tenders = Tender.objects.all().order_by('-start_date')
+    pending_users = User.objects.filter(is_active=False).select_related('airline', 'supplier')
+    pending_documents = SupplierDocument.objects.filter(status='PENDING').select_related('supplier')
+    approved_documents = SupplierDocument.objects.filter(status='APPROVED').select_related('supplier')
+    rejected_documents = SupplierDocument.objects.filter(status='REJECTED').select_related('supplier')
+    airports = Airport.objects.all().order_by('iata_code', 'icao_code')
+    currencies = Currency.objects.all().order_by('code')
+    airlines = Airline.objects.all().order_by('name')
+    suppliers = Supplier.objects.all().order_by('name')
+
+    try:
+        credit_apr_obj = GlobalConfig.objects.get(key='cost_of_credit_apr')
+        credit_apr = credit_apr_obj.value
+    except GlobalConfig.DoesNotExist:
+        credit_apr = Decimal('12.00')
+
+    # Calculate volume requirement submission status for each tender
+    tender_release_info = []
+    total_registered_airlines = Airline.objects.count()
+
+    for t in tenders:
+        # Number of unique airlines that submitted volumes
+        submitted_count = VolumeRequirement.objects.filter(tender=t, is_submitted=True).values_list('airline_id', flat=True).distinct().count()
+        # Find which airlines haven't submitted yet
+        submitted_ids = set(VolumeRequirement.objects.filter(tender=t, is_submitted=True).values_list('airline_id', flat=True).distinct())
+        pending_airlines_list = [a.name for a in airlines if a.id not in submitted_ids]
+
+        tender_release_info.append({
+            'tender': t,
+            'submitted_airlines_count': submitted_count,
+            'total_airlines': total_registered_airlines,
+            'pending_airlines': pending_airlines_list,
+            'volumes_released': t.volumes_released
+        })
+
+    return render(request, 'procurement/admin_console.html', {
+        'tenders_info': tender_release_info,
+        'pending_users': pending_users,
+        'pending_documents': pending_documents,
+        'approved_documents': approved_documents,
+        'rejected_documents': rejected_documents,
+        'airports': airports,
+        'currencies': currencies,
+        'airlines': airlines,
+        'suppliers': suppliers,
+        'credit_apr': credit_apr,
     })

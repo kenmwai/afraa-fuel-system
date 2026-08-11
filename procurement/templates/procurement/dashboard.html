@@ -22,6 +22,22 @@
             {% endfor %}
         {% endif %}
 
+        {% if request.user.is_superuser %}
+            <div class="aviation-card static-card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h4 class="mb-2 fw-bold text-primary">⚙️ Administrator Control Tower</h4>
+                        <p class="mb-0 text-muted">Manage system components including airports, airlines, currencies, account approvals, and document verifications.</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'admin_console' %}" class="btn btn-aviation-glow btn-sm">
+                            Open Administrator Console
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
         {% if request.user.supplier %}
             <div class="aviation-card static-card p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -121,7 +137,11 @@
                                         ⛽ Supplier: Deadline Passed
                                     </button>
                                 {% elif tender.current_round >= 1 and tender.current_round <= 3 %}
-                                    {% if is_approved %}
+                                    {% if not tender.volumes_released %}
+                                        <button class="btn btn-secondary btn-sm rounded-pill text-center w-100" disabled style="font-weight: bold;">
+                                            🔒 Volumes Not Released
+                                        </button>
+                                    {% elif is_approved %}
                                         <a href="{% url 'submit_bids' tender.id %}" class="btn btn-aviation-success btn-sm text-center">
                                             ⛽ Supplier: Submit Bid
                                         </a>

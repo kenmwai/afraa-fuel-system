@@ -153,6 +153,7 @@ class AnalysisViewTests(TestCase):
 
 	def test_supplier_bid_form_features(self):
 		self.tender.current_round = 1
+		self.tender.volumes_released = True
 		self.tender.save()
 		# Create a supplier user
 		c = Client()
@@ -191,7 +192,7 @@ class SupplierVerificationTests(TestCase):
     def setUp(self):
         self.curr = Currency.objects.create(code='USD', name='US Dollar', exchange_rate_to_usd=1, symbol='$')
         self.uom = UnitOfMeasure.objects.create(code='USG', conversion_to_usg=1)
-        self.tender = Tender.objects.create(title='T1', start_date='2025-01-01', end_date='2026-12-31', current_round=1)
+        self.tender = Tender.objects.create(title='T1', start_date='2025-01-01', end_date='2026-12-31', current_round=1, volumes_released=True)
         
         self.supplier_user = User.objects.create_user('supplier_test', 'sup_test@example.com', 'suppass')
         self.supplier = Supplier.objects.create(user=self.supplier_user, name='TestSupplier')
@@ -267,8 +268,14 @@ class SupplierVerificationTests(TestCase):
         
         c = Client()
         c.login(username='supplier_test', password='suppass')
-        
         resp = c.get(f'/tender/{self.tender.id}/bids/')
         # Should render bid form successfully (status 200) instead of redirecting
         self.assertEqual(resp.status_code, 200)
+
+    def test_supplier_documents_view_renders_successfully(self):
+        c = Client()
+        c.login(username='supplier_test', password='suppass')
+        resp = c.get('/supplier/documents/')
+        self.assertEqual(resp.status_code, 200)
+
 

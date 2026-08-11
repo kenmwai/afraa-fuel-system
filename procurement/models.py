@@ -81,6 +81,7 @@ class Tender(models.Model):
     current_round = models.IntegerField(default=0)
     cost_of_credit_rate = models.DecimalField(max_digits=10, decimal_places=8, null=True, blank=True)
     show_live_ranking = models.BooleanField(default=True, help_text="If True, rankings are shown continuously. If False, rankings are hidden until the round closes.")
+    volumes_released = models.BooleanField(default=False, help_text="If True, suppliers can see the volumes and place bids.")
 
     @property
     def current_round_deadline(self):

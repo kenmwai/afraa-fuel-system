@@ -37,6 +37,9 @@
                     {% if request.user.supplier %}
                         <a href="{% url 'supplier_documents' %}" class="btn btn-sm btn-aviation-outline text-white border-white">🛡️ Verification Docs</a>
                     {% endif %}
+                    {% if request.user.is_superuser %}
+                        <a href="{% url 'admin_console' %}" class="btn btn-sm btn-aviation-outline text-white border-white">⚙️ Admin Console</a>
+                    {% endif %}
                     {% if tender %}
                         {% if request.user.airline %}
                             <a href="{% url 'submit_volumes' tender.id %}" class="btn btn-sm btn-aviation-outline text-white border-white">✈️ Submit Volumes</a>
