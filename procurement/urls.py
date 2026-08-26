@@ -1,9 +1,10 @@
 from django.urls import path
 from . import views
+from .register_view import register
 
 urlpatterns = [
     # Registration
-    path('register/', views.register, name='register'),
+    path('register/', register, name='register'),
     
     # Dashboard
     path('', views.dashboard, name='dashboard'),
@@ -34,4 +35,7 @@ urlpatterns = [
 
     # Admin Settings Dashboard
     path('admin-console/', views.admin_console, name='admin_console'),
+
+    # Presign upload endpoint for direct-to-R2 uploads
+    path('presign-upload/', views.presign_upload, name='presign_upload'),
 ]
