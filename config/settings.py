@@ -183,13 +183,32 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
 # To persist supplier verification documents, we use Cloudflare R2 (S3-compatible).
 # We configure this backend conditionally based on the presence of credentials.
 
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('R2_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('R2_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME') or os.environ.get('R2_BUCKET_NAME')
-AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT')
-if not AWS_S3_ENDPOINT_URL and os.environ.get('R2_ACCOUNT_ID'):
-    AWS_S3_ENDPOINT_URL = f"https://{os.environ.get('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com"
-AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
+AWS_ACCESS_KEY_ID = (os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('R2_ACCESS_KEY_ID') or '').strip()
+AWS_SECRET_ACCESS_KEY = (os.environ.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('R2_SECRET_ACCESS_KEY') or '').strip()
+AWS_STORAGE_BUCKET_NAME = (os.environ.get('AWS_STORAGE_BUCKET_NAME') or os.environ.get('R2_BUCKET_NAME') or '').strip()
+
+# Clean R2 endpoint
+raw_endpoint = (os.environ.get('AWS_S3_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT') or '').strip()
+r2_account_id = os.environ.get('R2_ACCOUNT_ID', '').strip()
+
+if raw_endpoint:
+    endpoint = raw_endpoint
+    if not endpoint.startswith('http://') and not endpoint.startswith('https://'):
+        endpoint = f'https://{endpoint}'
+    # If the user included the bucket name in the endpoint URL, strip it
+    if AWS_STORAGE_BUCKET_NAME and endpoint.rstrip('/').endswith(f'/{AWS_STORAGE_BUCKET_NAME}'):
+        endpoint = endpoint.rstrip('/')[:-len(f'/{AWS_STORAGE_BUCKET_NAME}')]
+    AWS_S3_ENDPOINT_URL = endpoint.rstrip('/')
+elif r2_account_id:
+    AWS_S3_ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+else:
+    AWS_S3_ENDPOINT_URL = None
+
+AWS_S3_CUSTOM_DOMAIN = (os.environ.get('AWS_S3_CUSTOM_DOMAIN') or '').strip() or None
+
+# Also export AWS_S3_* aliases for django-storages
+AWS_S3_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+AWS_S3_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
 
 if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
     STORAGES = {
