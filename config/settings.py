@@ -27,18 +27,34 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-%f=#jd@hiku)*1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['testserver', '127.0.0.1', 'localhost']
-
-# Fix for Django 4.0+ CSRF Origin checking on local ports
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
-
-# Add Vercel domain to allowed hosts and CSRF trusted origins dynamically
+ALLOWED_HOSTS = ['testserver', '127.0.0.1', 'localhost', '.vercel.app', 'afraa-fuel-system.vercel.app']
+env_allowed_hosts = os.environ.get('ALLOWED_HOSTS')
+if env_allowed_hosts:
+    ALLOWED_HOSTS.extend([h.strip() for h in env_allowed_hosts.split(',') if h.strip()])
 VERCEL_URL = os.environ.get('VERCEL_URL')
-if VERCEL_URL:
+if VERCEL_URL and VERCEL_URL not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(VERCEL_URL)
-    ALLOWED_HOSTS.append('.vercel.app')
+
+# Trusted origins for CSRF protection
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'https://*.vercel.app',
+    'https://afraa-fuel-system.vercel.app',
+]
+env_csrf = os.environ.get('CSRF_TRUSTED_ORIGINS')
+if env_csrf:
+    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in env_csrf.split(',') if origin.strip()])
+if VERCEL_URL:
     CSRF_TRUSTED_ORIGINS.append(f'https://{VERCEL_URL}')
-    CSRF_TRUSTED_ORIGINS.append(f'https://*.vercel.app')
+
+# Reverse proxy SSL & Host detection for Vercel / serverless deployments
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# Secure cookies in production
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 
 # Application definition
@@ -143,7 +159,22 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # Media files (uploads)
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# On serverless environments (e.g. Vercel), the filesystem is read-only except /tmp
+IS_VERCEL = bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV'))
+if IS_VERCEL:
+    MEDIA_ROOT = Path('/tmp/media')
+    try:
+        MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    FILE_UPLOAD_TEMP_DIR = '/tmp'
+else:
+    MEDIA_ROOT = BASE_DIR / 'media'
+
+# File upload memory settings (files up to 5MB are buffered in memory)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
 
 # ==============================================================================
 # CLOUDFLARE R2 / S3 STORAGE CONFIGURATION
@@ -169,9 +200,10 @@ if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-    AWS_S3_REGION_NAME = 'auto'  # Required for R2
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'auto')  # 'auto' required for R2
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
     
     # Query parameters signing control
     AWS_QUERYSTRING_AUTH = os.environ.get('AWS_QUERYSTRING_AUTH', 'True') == 'True'

@@ -55,12 +55,16 @@
                                         <td>
                                             {% for doc in documents %}
                                                 {% if doc.document_type == 'business_registration' %}
-                                                    {% if doc.status == 'APPROVED' %}
-                                                        <span class="runway-badge green">✓ Approved</span>
-                                                    {% elif doc.status == 'REJECTED' %}
-                                                        <span class="runway-badge red">✗ Rejected</span>
+                                                    {% if doc.file %}
+                                                        {% if doc.status == 'APPROVED' %}
+                                                            <span class="runway-badge green">✓ Approved</span>
+                                                        {% elif doc.status == 'REJECTED' %}
+                                                            <span class="runway-badge red">✗ Rejected</span>
+                                                        {% else %}
+                                                            <span class="runway-badge amber">⧗ Pending Review</span>
+                                                        {% endif %}
                                                     {% else %}
-                                                        <span class="runway-badge amber">⧗ Pending Review</span>
+                                                        <span class="runway-badge grey">Missing</span>
                                                     {% endif %}
                                                 {% endif %}
                                             {% empty %}
@@ -81,7 +85,11 @@
                                             {% for doc in documents %}
                                                 {% if doc.document_type == 'business_registration' %}
                                                     <div class="d-flex flex-column gap-1">
-                                                        <a href="{{ doc.file.url }}" class="btn btn-sm btn-aviation-outline py-1 text-center" target="_blank">View File</a>
+                                                        {% if doc.file %}
+                                                            <a href="{{ doc.file.url }}" class="btn btn-sm btn-aviation-outline py-1 text-center" target="_blank">View File</a>
+                                                        {% else %}
+                                                            <span class="text-muted small">No file attached</span>
+                                                        {% endif %}
                                                         {% if doc.status == 'REJECTED' %}
                                                             <div class="alert alert-danger p-2 mt-2 mb-0 small" style="font-size: 0.8rem;">
                                                                 <strong>Rejection Reason:</strong> {{ doc.rejection_reason|default:"No reason provided." }}
@@ -102,12 +110,16 @@
                                         <td>
                                             {% for doc in documents %}
                                                 {% if doc.document_type == 'insurance' %}
-                                                    {% if doc.status == 'APPROVED' %}
-                                                        <span class="runway-badge green">✓ Approved</span>
-                                                    {% elif doc.status == 'REJECTED' %}
-                                                        <span class="runway-badge red">✗ Rejected</span>
+                                                    {% if doc.file %}
+                                                        {% if doc.status == 'APPROVED' %}
+                                                            <span class="runway-badge green">✓ Approved</span>
+                                                        {% elif doc.status == 'REJECTED' %}
+                                                            <span class="runway-badge red">✗ Rejected</span>
+                                                        {% else %}
+                                                            <span class="runway-badge amber">⧗ Pending Review</span>
+                                                        {% endif %}
                                                     {% else %}
-                                                        <span class="runway-badge amber">⧗ Pending Review</span>
+                                                        <span class="runway-badge grey">Missing</span>
                                                     {% endif %}
                                                 {% endif %}
                                             {% empty %}
@@ -128,7 +140,11 @@
                                             {% for doc in documents %}
                                                 {% if doc.document_type == 'insurance' %}
                                                     <div class="d-flex flex-column gap-1">
-                                                        <a href="{{ doc.file.url }}" class="btn btn-sm btn-aviation-outline py-1 text-center" target="_blank">View File</a>
+                                                        {% if doc.file %}
+                                                            <a href="{{ doc.file.url }}" class="btn btn-sm btn-aviation-outline py-1 text-center" target="_blank">View File</a>
+                                                        {% else %}
+                                                            <span class="text-muted small">No file attached</span>
+                                                        {% endif %}
                                                         {% if doc.status == 'REJECTED' %}
                                                             <div class="alert alert-danger p-2 mt-2 mb-0 small" style="font-size: 0.8rem;">
                                                                 <strong>Rejection Reason:</strong> {{ doc.rejection_reason|default:"No reason provided." }}

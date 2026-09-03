@@ -639,25 +639,33 @@ def supplier_documents(request):
     if request.method == 'POST':
         form = SupplierDocumentForm(request.POST, request.FILES)
         if form.is_valid():
-            doc_type = form.cleaned_data['document_type']
-            file = form.cleaned_data['file']
-            
-            # Find existing document of this type, if any, to update it
-            doc, created = SupplierDocument.objects.get_or_create(
-                supplier=supplier,
-                document_type=doc_type
-            )
-            doc.file = file
-            doc.status = 'PENDING'
-            doc.rejection_reason = ''
-            doc.save()
-            
-            messages.success(request, f"Document '{doc.get_document_type_display()}' uploaded successfully. It is now pending review.")
-            return redirect('supplier_documents')
+            try:
+                doc_type = form.cleaned_data['document_type']
+                file = form.cleaned_data['file']
+                
+                # Find existing document of this type, if any, to update it
+                doc = SupplierDocument.objects.filter(
+                    supplier=supplier,
+                    document_type=doc_type
+                ).first()
+                if not doc:
+                    doc = SupplierDocument(
+                        supplier=supplier,
+                        document_type=doc_type
+                    )
+                doc.file = file
+                doc.status = 'PENDING'
+                doc.rejection_reason = ''
+                doc.save()
+                
+                messages.success(request, f"Document '{doc.get_document_type_display()}' uploaded successfully. It is now pending review.")
+                return redirect('supplier_documents')
+            except Exception as e:
+                messages.error(request, f"Failed to upload document: {str(e)}")
     else:
         form = SupplierDocumentForm()
         
-    uploaded_types = [doc.document_type for doc in documents]
+    uploaded_types = [doc.document_type for doc in documents if doc.file]
     required_types = ['business_registration', 'insurance']
     missing_docs = [t for t in required_types if t not in uploaded_types]
     
