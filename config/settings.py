@@ -213,7 +213,7 @@ AWS_S3_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
 if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
     STORAGES = {
         "default": {
-            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "BACKEND": "procurement.storage_backends.R2Boto3Storage",
         },
         "staticfiles": {
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
@@ -221,7 +221,7 @@ if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
     }
     AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'auto')  # 'auto' required for R2
     AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_FILE_OVERWRITE = True  # Avoid calling HeadObject on Cloudflare R2
     AWS_DEFAULT_ACL = None
     
     # Query parameters signing control
